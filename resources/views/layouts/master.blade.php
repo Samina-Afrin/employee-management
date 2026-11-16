@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -71,18 +70,26 @@
                 <ul class="sidebar-menu-list">
 
                     <li class="sidebar-menu-item">
-                        <a href="{{ url('/workers') }}"
-                           class="sidebar-menu-link {{ request()->is('workers*') ? 'active' : '' }}">
+                        <a href="{{ route('employee.index') }}"
+                           class="sidebar-menu-link {{ request()->is('employee*') ? 'active' : '' }}">
                             <i class="bi bi-people-fill"></i>
                             <span>Employee</span>
                         </a>
                     </li>
 
                     <li class="sidebar-menu-item">
-                        <a href="{{ url('/designation') }}"
+                        <a href="{{ route('department.index') }}"
+                           class="sidebar-menu-link {{ request()->is('department*') ? 'active' : '' }}">
+                            <i class="bi bi-building"></i>
+                            <span>Department</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('designation.index') }}"
                            class="sidebar-menu-link {{ request()->is('designation*') ? 'active' : '' }}">
                             <i class="bi bi-person-badge-fill"></i>
-                            <span>Department & Designation</span>
+                            <span>Designation</span>
                         </a>
                     </li>
 
@@ -191,7 +198,7 @@
                         <li class="dropdown-header">Quick Actions</li>
 
                         <li>
-                            <a class="dropdown-item" href="{{ url('/workers/create') }}">
+                            <a class="dropdown-item" href="{{ route('employee.create') }}">
                                 <i class="bi bi-person-plus"></i>
                                 Add Employee
                             </a>
@@ -212,8 +219,15 @@
                         </li>
 
                         <li>
-                            <a class="dropdown-item" href="{{ url('/designation/create') }}">
-                                <i class="bi bi-person-badge"></i>
+                            <a class="dropdown-item" href="{{ route('department.create') }}">
+                                <i class="bi bi-building"></i>
+                                Add Department
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item" href="{{ route('designation.create') }}">
+                                <i class="bi bi-person-badge-fill"></i>
                                 Add Designation
                             </a>
                         </li>
@@ -326,11 +340,7 @@
 
         <!-- ================= PAGE CONTENT ================= -->
 
-        
-
-            @yield('content')
-
-      
+        @yield('content')
 
         <!-- ================= END PAGE CONTENT ================= -->
 
