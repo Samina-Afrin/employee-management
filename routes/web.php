@@ -6,6 +6,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
+use App\Http\Controllers\AttendanceController;
 
 Auth::routes();
 
@@ -17,11 +18,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
 });
 
-
 Route::resource('employee', EmployeeController::class);
-
-
 Route::resource('department', DepartmentController::class);
-
-
 Route::resource('designation', DesignationController::class);
+Route::resource('attendance', AttendanceController::class);
