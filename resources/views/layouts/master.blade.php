@@ -109,21 +109,14 @@
                     </li>
 
                     <li class="sidebar-menu-item">
-                        <a href="{{ url('/payroll & salary') }}"
-                           class="sidebar-menu-link {{ request()->is('payroll & salary*') ? 'active' : '' }}">
+                        <a href="{{ route('payroll.index') }}"
+                           class="sidebar-menu-link {{ request()->is('payroll*') ? 'active' : '' }}">
                             <i class="bi bi-cash-stack"></i>
-                            <span>Payroll & Salary</span>
+                            <span>Payroll</span>
                         </a>
                     </li>
 
-                    <li class="sidebar-menu-item">
-                        <a href="{{ url('/recruitment') }}"
-                           class="sidebar-menu-link {{ request()->is('recruitment*') ? 'active' : '' }}">
-                            <i class="bi bi-person-plus-fill"></i>
-                            <span>Recruitment</span>
-                        </a>
-                    </li>
-
+                  
                 </ul>
             </div>
 

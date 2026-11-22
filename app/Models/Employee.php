@@ -56,4 +56,21 @@ class Employee extends Model
             }
         });
     }
+
+    /**
+     * Employee-এর Department
+     * employee.department_designation_id → departments.id
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class, 'department_designation_id', 'id');
+    }
+
+    /**
+     * Employee-এর Manager (self reference)
+     */
+    public function manager()
+    {
+        return $this->belongsTo(Employee::class, 'manager_id');
+    }
 }

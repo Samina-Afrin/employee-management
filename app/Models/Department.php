@@ -20,4 +20,13 @@ class Department extends Model
     protected $casts = [
         'status' => 'integer',
     ];
+
+    /**
+     * Department-এর সব Employee
+     * employees.department_designation_id → departments.id
+     */
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'department_designation_id', 'id');
+    }
 }
