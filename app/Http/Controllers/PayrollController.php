@@ -2,247 +2,185 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Payroll;
 use App\Models\Employee;
-use App\Models\Attendance;
+use App\Models\Payroll;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class PayrollController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Payroll::select(
-                'salary_month',
-                DB::raw('COUNT(*) as total'),
-                DB::raw('SUM(gross_salary) as total_gross'),
-                DB::raw('SUM(net_salary) as total_net'),
-                DB::raw('SUM(CASE WHEN payment_status=2 THEN 1 ELSE 0 END) as paid_count'),
-                DB::raw('SUM(CASE WHEN payment_status=1 THEN 1 ELSE 0 END) as pending_count')
-            )
-            ->groupBy('salary_month')
-            ->orderByDesc('salary_month');
+        $month = $request->month ?? now()->month;
+        $year  = $request->year  ?? now()->year;
 
-        if ($request->filled('month')) {
-            $query->whereDate('salary_month', $request->month . '-01');
-        }
+        $payrolls = Payroll::with('employee.department', 'employee.designation')
+            ->where('month', $month)
+            ->where('year', $year)
+            ->latest()
+            ->paginate(20);
 
-        $summaries = $query->paginate(12);
-        return view('payroll.index', compact('summaries'));
+        return view('payroll.index', compact('payrolls', 'month', 'year'));
     }
 
-    public function create(Request $request)
+    public function create()
     {
-        $month = $request->month ?? date('Y-m');
-        $employees = Employee::orderBy('name')->get();
-        $monthDate = $month . '-01';
+        $employees = Employee::where('status', 1)
+            ->with('department', 'designation')
+            ->get();
 
-        $existing = Payroll::whereDate('salary_month', $monthDate)
-            ->get()
-            ->keyBy('employee_id');
-
-        return view('payroll.create', compact('employees', 'month', 'existing'));
+        return view('payroll.create', compact('employees'));
     }
 
-    public function store(Request $request)
+    public function generate(Request $request)
     {
         $request->validate([
-            'salary_month' => 'required|date_format:Y-m',
-            'payroll' => 'required|array',
-            'payroll.*.per_day_salary' => 'required|numeric|min:0',
-            'payroll.*.working_days' => 'required|integer|min:1',
+            'month' => 'required|integer|between:1,12',
+            'year'  => 'required|integer|digits:4',
+            'default_allowances.*.title'  => 'nullable|string|max:255',
+            'default_allowances.*.amount' => 'nullable|numeric|min:0',
+            'default_deductions.*.title'  => 'nullable|string|max:255',
+            'default_deductions.*.amount' => 'nullable|numeric|min:0',
         ]);
 
-        $month = $request->salary_month;
-        $monthDate = $month . '-01';
-        $monthCarbon = Carbon::parse($monthDate);
+        $employees = Employee::where('status', 1)->get();
+        $count = 0;
 
-        $saved = 0;
-        DB::beginTransaction();
-        try {
-            foreach ($request->payroll as $employeeId => $row) {
-                $attendances = Attendance::where('employee_id', $employeeId)
-                    ->whereMonth('attendance_date', $monthCarbon->month)
-                    ->whereYear('attendance_date', $monthCarbon->year)
-                    ->get();
+        $defaultAllowances = collect($request->default_allowances ?? [])
+            ->filter(fn($a) => !empty($a['title']) && isset($a['amount']) && $a['amount'] !== '');
+        $defaultDeductions = collect($request->default_deductions ?? [])
+            ->filter(fn($d) => !empty($d['title']) && isset($d['amount']) && $d['amount'] !== '');
 
-                // শুধু Absent (status=3) — Leave (status=4) বাদ
-                $absentDays = $attendances->where('status', 3)->count();
+        foreach ($employees as $employee) {
+            $exists = Payroll::where('employee_id', $employee->id)
+                ->where('month', $request->month)
+                ->where('year', $request->year)
+                ->exists();
 
-                // Present (1) + Late (2) + Leave (4) — Leave নিলে কাটবে না
-                $presentDays = $attendances->whereIn('status', [1, 2, 4])->count();
+            if ($exists) continue;
 
-                $perDay = (float) ($row['per_day_salary'] ?? 0);
-                $workingDays = (int) ($row['working_days'] ?? 30);
+            $basic = $employee->monthly_salary ?? 0;
 
-                // Attendance ডাটা না থাকলে full month ধরি
-                if ($attendances->count() == 0) {
-                    $presentDays = $workingDays - $absentDays;
-                }
+            $allowanceSum = $defaultAllowances->sum(fn($a) => (float) $a['amount']);
+            $deductionSum = $defaultDeductions->sum(fn($d) => (float) $d['amount']);
 
-                $basic = $perDay * $presentDays;
-                $house = $basic * 0.50;
-                $medical = $basic * 0.10;
-                $transport = $basic * 0.05;
-                $other = (float) ($row['other_allowance'] ?? 0);
+            $gross = $basic + $allowanceSum ?? 0;
+            $net   = $gross - $deductionSum ?? 0;
 
-                $gross = $basic + $house + $medical + $transport + $other;
+            $payroll = Payroll::create([
+                'employee_id'     => $employee->id,
+                'month'           => $request->month,
+                'year'            => $request->year,
+                'basic_salary'    => $basic,
+                'total_allowance' => $allowanceSum,
+                'total_deduction' => $deductionSum,
+                'gross_salary'    => $gross,
+                'net_salary'      => $net,
+                'status'          => 'pending',
+            ]);
 
-                $taxPercent = (float) ($row['tax_percent'] ?? 0);
-                $taxDeduction = $gross * ($taxPercent / 100);
-
-                // শুধু Absent-এর জন্য deduction
-                $absenceDeduction = $perDay * $absentDays;
-                $loanDeduction = (float) ($row['loan_deduction'] ?? 0);
-
-                $net = $gross - $taxDeduction - $absenceDeduction - $loanDeduction;
-                $net = $net < 0 ? 0 : $net;
-
-                Payroll::updateOrCreate(
-                    [
-                        'employee_id' => $employeeId,
-                        'salary_month' => $monthDate,
-                    ],
-                    [
-                        'per_day_salary'      => $perDay,
-                        'working_days'        => $workingDays,
-                        'present_days'        => $presentDays,   // Present + Leave
-                        'absent_days'         => $absentDays,    // শুধু Absent
-                        'basic_salary'        => $basic,
-                        'house_rent'          => $house,
-                        'medical_allowance'   => $medical,
-                        'transport_allowance' => $transport,
-                        'other_allowance'     => $other,
-                        'gross_salary'        => $gross,
-                        'tax_percent'         => $taxPercent,
-                        'tax_deduction'       => $taxDeduction,
-                        'absence_deduction'   => $absenceDeduction,
-                        'loan_deduction'      => $loanDeduction,
-                        'net_salary'          => $net,
-                        'payment_status'      => 1,
-                    ]
-                );
-                $saved++;
+            foreach ($defaultAllowances as $a) {
+                $payroll->details()->create([
+                    'type'   => 'allowance',
+                    'title'  => $a['title'],
+                    'amount' => $a['amount'],
+                ]);
             }
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Failed: ' . $e->getMessage());
+            foreach ($defaultDeductions as $d) {
+                $payroll->details()->create([
+                    'type'   => 'deduction',
+                    'title'  => $d['title'],
+                    'amount' => $d['amount'],
+                ]);
+            }
+
+            $count++;
         }
 
-        return redirect()->route('payroll.index')
-            ->with('success', "Payroll generated for {$saved} employees for {$month}.");
+        return redirect()->route('payroll.index', [
+            'month' => $request->month,
+            'year'  => $request->year,
+        ])->with('success', "$count payroll(s) generated successfully.");
     }
 
-    public function show($id)
+    public function show(Payroll $payroll)
     {
-        $payroll = Payroll::with('employee.department')->findOrFail($id);
+        $payroll->load('employee.department', 'employee.designation', 'details');
         return view('payroll.show', compact('payroll'));
     }
 
-    public function downloadPayslip($id)
+    public function edit(Payroll $payroll)
     {
-        $payroll = Payroll::with('employee.department')->findOrFail($id);
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payroll.payslip-pdf', compact('payroll'))
-            ->setPaper('A4', 'portrait');
-
-        $filename = 'payslip_' . ($payroll->employee->employee_code ?? 'emp') . '_' . \Carbon\Carbon::parse($payroll->salary_month)->format('Y_m') . '.pdf';
-
-        return $pdf->download($filename);
-    }
-
-    public function downloadSheet($month)
-    {
-        $monthDate = $month . '-01';
-        $records = Payroll::with('employee.department')
-            ->whereDate('salary_month', $monthDate)
-            ->get();
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payroll.sheet-pdf', compact('records', 'month'))
-            ->setPaper('A4', 'landscape');
-
-        return $pdf->download('payroll_sheet_' . $month . '.pdf');
-    }
-
-    public function edit($id)
-    {
-        $payroll = Payroll::with('employee')->findOrFail($id);
+        $payroll->load('details', 'employee');
         return view('payroll.edit', compact('payroll'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Payroll $payroll)
     {
-        $payroll = Payroll::findOrFail($id);
-
-        $data = $request->validate([
-            'per_day_salary'      => 'required|numeric|min:0',
-            'working_days'        => 'required|integer|min:1',
-            'tax_percent'         => 'nullable|numeric|min:0|max:100',
-            'loan_deduction'      => 'nullable|numeric|min:0',
-            'other_allowance'     => 'nullable|numeric|min:0',
-            'payment_status'      => 'required|in:1,2',
-            'payment_date'        => 'nullable|date',
+        $request->validate([
+            'allowances.*.title'  => 'nullable|string|max:255',
+            'allowances.*.amount' => 'nullable|numeric|min:0',
+            'deductions.*.title'  => 'nullable|string|max:255',
+            'deductions.*.amount' => 'nullable|numeric|min:0',
         ]);
 
-        $perDay = (float) $data['per_day_salary'];
-        $workingDays = (int) $data['working_days'];
-        $absentDays = $payroll->absent_days;
-        $presentDays = $workingDays - $absentDays;  // Leave বাদ, শুধু Absent
+        $payroll->details()->delete();
 
-        $basic = $perDay * $presentDays;
-        $house = $basic * 0.50;
-        $medical = $basic * 0.10;
-        $transport = $basic * 0.05;
-        $other = $data['other_allowance'] ?? 0;
+        $totalAllowance = 0;
+        $totalDeduction = 0;
 
-        $gross = $basic + $house + $medical + $transport + $other;
-        $taxDeduction = $gross * (($data['tax_percent'] ?? 0) / 100);
-        $absenceDeduction = $perDay * $absentDays;
-        $loanDeduction = $data['loan_deduction'] ?? 0;
+        foreach ($request->allowances ?? [] as $a) {
+            if (empty($a['title']) || !isset($a['amount']) || $a['amount'] === '') continue;
+            $payroll->details()->create([
+                'type'   => 'allowance',
+                'title'  => $a['title'],
+                'amount' => $a['amount'],
+            ]);
+            $totalAllowance += (float) $a['amount'];
+        }
 
-        $net = $gross - $taxDeduction - $absenceDeduction - $loanDeduction;
-        $net = $net < 0 ? 0 : $net;
+        foreach ($request->deductions ?? [] as $d) {
+            if (empty($d['title']) || !isset($d['amount']) || $d['amount'] === '') continue;
+            $payroll->details()->create([
+                'type'   => 'deduction',
+                'title'  => $d['title'],
+                'amount' => $d['amount'],
+            ]);
+            $totalDeduction += (float) $d['amount'];
+        }
+
+        $gross = $payroll->basic_salary + $totalAllowance;
+        $net   = $gross - $totalDeduction;
 
         $payroll->update([
-            'per_day_salary'      => $perDay,
-            'working_days'        => $workingDays,
-            'present_days'        => $presentDays,
-            'basic_salary'        => $basic,
-            'house_rent'          => $house,
-            'medical_allowance'   => $medical,
-            'transport_allowance' => $transport,
-            'other_allowance'     => $other,
-            'gross_salary'        => $gross,
-            'tax_percent'         => $data['tax_percent'] ?? 0,
-            'tax_deduction'       => $taxDeduction,
-            'absence_deduction'   => $absenceDeduction,
-            'loan_deduction'      => $loanDeduction,
-            'net_salary'          => $net,
-            'payment_status'      => $data['payment_status'],
-            'payment_date'        => $data['payment_date'] ?? null,
+            'total_allowance' => $totalAllowance,
+            'total_deduction' => $totalDeduction,
+            'gross_salary'    => $gross,
+            'net_salary'      => $net,
         ]);
 
-        return redirect()->route('payroll.index')
+        return redirect()->route('payroll.show', $payroll)
             ->with('success', 'Payroll updated successfully.');
     }
 
-    public function destroy($id)
+    public function markPaid(Payroll $payroll)
     {
-        $payroll = Payroll::findOrFail($id);
-        $payroll->delete();
-        return redirect()->route('payroll.index')
-            ->with('success', 'Payroll deleted successfully.');
+        $payroll->update([
+            'status'       => 'paid',
+            'payment_date' => now(),
+        ]);
+
+        return back()->with('success', 'Payroll marked as paid.');
     }
 
-    public function monthDetail($month)
+    public function payslip(Payroll $payroll)
     {
-        $monthDate = $month . '-01';
-        $records = Payroll::with('employee.department')
-            ->whereDate('salary_month', $monthDate)
-            ->get();
+        $payroll->load('employee.department', 'employee.designation', 'details');
+        return view('payroll.payslip', compact('payroll'));
+    }
 
-        return view('payroll.month-detail', compact('records', 'month'));
+    public function destroy(Payroll $payroll)
+    {
+        $payroll->delete();
+        return back()->with('success', 'Payroll deleted.');
     }
 }

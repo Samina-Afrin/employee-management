@@ -25,8 +25,15 @@ Route::resource('leave', LeaveController::class);
 Route::post('leave/{leave}/approve', [LeaveController::class, 'approve'])->name('leave.approve');
 Route::post('leave/{leave}/reject', [LeaveController::class, 'reject'])->name('leave.reject');
 
-// Payroll
-Route::resource('payroll', PayrollController::class);
-Route::get('payroll/month/{month}', [PayrollController::class, 'monthDetail'])->name('payroll.month');
-Route::get('payroll/{id}/payslip', [PayrollController::class, 'downloadPayslip'])->name('payroll.payslip');
-Route::get('payroll/sheet/{month}', [PayrollController::class, 'downloadSheet'])->name('payroll.sheet');
+// Payroll Routes
+Route::prefix('payroll')->name('payroll.')->group(function () {
+    Route::get('/', [PayrollController::class, 'index'])->name('index');
+    Route::get('/create', [PayrollController::class, 'create'])->name('create');
+    Route::post('/generate', [PayrollController::class, 'generate'])->name('generate');
+    Route::get('/{payroll}/payslip', [PayrollController::class, 'payslip'])->name('payslip');  // ⬅ age
+    Route::get('/{payroll}', [PayrollController::class, 'show'])->name('show');
+    Route::get('/{payroll}/edit', [PayrollController::class, 'edit'])->name('edit');
+    Route::put('/{payroll}', [PayrollController::class, 'update'])->name('update');
+    Route::patch('/{payroll}/paid', [PayrollController::class, 'markPaid'])->name('paid');
+    Route::delete('/{payroll}', [PayrollController::class, 'destroy'])->name('destroy');
+});

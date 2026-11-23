@@ -37,8 +37,8 @@ class DashboardController extends Controller
         $pendingLeaves = Leave::where('status', 1)->count();
 
         // Current month payroll
-        $monthlyPayroll = Payroll::whereMonth('salary_month', $currentMonth)
-            ->whereYear('salary_month', $currentYear)
+        $monthlyPayroll = Payroll::where('month', $currentMonth)
+            ->where('year', $currentYear)
             ->sum('net_salary');
 
         // Department-wise employees

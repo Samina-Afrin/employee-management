@@ -89,16 +89,20 @@ class EmployeeController extends Controller
     private function validateData(Request $request, $ignoreId = null)
     {
         return $request->validate([
-            'name'          => 'required|string|max:150',
-            'phone'         => 'nullable|string|max:20',
-            'nid_number'    => ['nullable', 'regex:/^(?:\d{10}|\d{13}|\d{17})$/', 'unique:employees,nid_number,' . $ignoreId],
-            'photo'         => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'gender'        => 'required|in:1,2',
-            'date_of_birth' => 'nullable|date',
-            'address'       => 'nullable|string',
-            'joining_date'  => 'required|date',
-            'job_type'      => 'required|in:1,2,3',
-            'status'        => 'required|in:1,2,3',
+            'name'            => 'required|string|max:150',
+            'phone'           => 'nullable|string|max:20',
+            'nid_number'      => ['nullable', 'regex:/^(?:\d{10}|\d{13}|\d{17})$/', 'unique:employees,nid_number,' . $ignoreId],
+            'photo'           => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'gender'          => 'required|in:1,2',
+            'date_of_birth'   => 'nullable|date',
+            'address'         => 'nullable|string',
+            'joining_date'    => 'required|date',
+            'department_id'   => 'nullable|exists:departments,id',
+            'designation_id'  => 'nullable|exists:designations,id',
+            'job_type'        => 'required|in:1,2,3',
+            'status'          => 'required|in:1,2,3',
+            'monthly_salary'  => 'required|numeric|min:0',
+            'salary_type'     => 'required|in:monthly,daily,hourly',
         ]);
     }
 }

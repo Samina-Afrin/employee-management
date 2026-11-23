@@ -11,6 +11,7 @@ class Designation extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'department_id',
         'designation_name',
         'designation_code',
         'description',
@@ -19,14 +20,15 @@ class Designation extends Model
 
     protected $casts = [
         'status' => 'integer',
-        'department_id' => 'integer',
     ];
 
-    /**
-     * Designation-এর Department
-     */
     public function department()
     {
-        return $this->belongsTo(Department::class, 'department_id');
+        return $this->belongsTo(Department::class);
+    }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'designation_id');
     }
 }

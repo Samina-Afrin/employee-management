@@ -5,8 +5,8 @@
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>Edit Payroll — {{ $payroll->employee->name ?? '—' }} ({{ \Carbon\Carbon::parse($payroll->salary_month)->format('F Y') }})</h4>
-        <a href="{{ route('payroll.index') }}" class="btn btn-secondary">Back</a>
+        <h4>Edit Payroll - {{ $payroll->employee->name }}</h4>
+        <a href="{{ route('payroll.show', $payroll) }}" class="btn btn-secondary">Back</a>
     </div>
 
     @if($errors->any())
@@ -19,65 +19,46 @@
         </div>
     @endif
 
-    <form action="{{ route('payroll.update', $payroll) }}" method="POST">
-        @csrf
-        @method('PUT')
+    <form method="POST" action="{{ route('payroll.update', $payroll) }}">
+        @csrf @method('PUT')
 
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Per Day Salary (৳) *</label>
-                <input type="number" step="0.01" name="per_day_salary" class="form-control" required
-                       value="{{ old('per_day_salary', $payroll->per_day_salary) }}">
-            </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Working Days *</label>
-                <input type="number" name="working_days" class="form-control" required
-                       value="{{ old('working_days', $payroll->working_days) }}">
-            </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Present Days (auto)</label>
-                <input type="text" class="form-control" value="{{ $payroll->present_days }}" disabled>
-            </div>
+        <table class="table table-bordered">
+            <tr><th style="width:200px;">Month</th><td>{{ date('F', mktime(0,0,0,$payroll->month,1)) }} {{ $payroll->year }}</td></tr>
+            <tr><th>Basic Salary</th><td>{{ number_format($payroll->basic_salary, 2) }}</td></tr>
+        </table>
 
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Tax %</label>
-                <input type="number" step="0.01" name="tax_percent" class="form-control"
-                       value="{{ old('tax_percent', $payroll->tax_percent) }}">
+        <h5>Allowances</h5>
+        @php $allowances = $payroll->details->where('type', 'allowance'); @endphp
+        @forelse($allowances as $i => $d)
+            <div class="row mb-2">
+                <div class="col-md-6"><input type="text" name="allowances[{{ $i }}][title]" value="{{ $d->title }}" class="form-control"></div>
+                <div class="col-md-6"><input type="number" step="0.01" name="allowances[{{ $i }}][amount]" value="{{ $d->amount }}" class="form-control"></div>
             </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Loan Deduction (৳)</label>
-                <input type="number" step="0.01" name="loan_deduction" class="form-control"
-                       value="{{ old('loan_deduction', $payroll->loan_deduction) }}">
+        @empty
+            <div class="row mb-2">
+                <div class="col-md-6"><input type="text" name="allowances[0][title]" placeholder="House Rent" class="form-control"></div>
+                <div class="col-md-6"><input type="number" step="0.01" name="allowances[0][amount]" placeholder="0.00" class="form-control"></div>
             </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Other Allowance (৳)</label>
-                <input type="number" step="0.01" name="other_allowance" class="form-control"
-                       value="{{ old('other_allowance', $payroll->other_allowance) }}">
-            </div>
+        @endforelse
 
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Payment Status *</label>
-                <select name="payment_status" class="form-select" required>
-                    <option value="1" @selected(old('payment_status', $payroll->payment_status)==1)>Pending</option>
-                    <option value="2" @selected(old('payment_status', $payroll->payment_status)==2)>Paid</option>
-                </select>
+        <h5 class="mt-3">Deductions</h5>
+        @php $deductions = $payroll->details->where('type', 'deduction'); @endphp
+        @forelse($deductions as $i => $d)
+            <div class="row mb-2">
+                <div class="col-md-6"><input type="text" name="deductions[{{ $i }}][title]" value="{{ $d->title }}" class="form-control"></div>
+                <div class="col-md-6"><input type="number" step="0.01" name="deductions[{{ $i }}][amount]" value="{{ $d->amount }}" class="form-control"></div>
             </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Payment Date</label>
-                <input type="date" name="payment_date" class="form-control"
-                       value="{{ old('payment_date', $payroll->payment_date?->format('Y-m-d')) }}">
+        @empty
+            <div class="row mb-2">
+                <div class="col-md-6"><input type="text" name="deductions[0][title]" placeholder="Tax" class="form-control"></div>
+                <div class="col-md-6"><input type="number" step="0.01" name="deductions[0][amount]" placeholder="0.00" class="form-control"></div>
             </div>
+        @endforelse
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Update Payroll</button>
+            <a href="{{ route('payroll.show', $payroll) }}" class="btn btn-secondary">Cancel</a>
         </div>
-
-        <div class="alert alert-info">
-            <strong>Current Values:</strong><br>
-            Basic: ৳ {{ number_format($payroll->basic_salary, 2) }} |
-            Gross: ৳ {{ number_format($payroll->gross_salary, 2) }} |
-            Net: ৳ {{ number_format($payroll->net_salary, 2) }}
-        </div>
-
-        <button class="btn btn-primary">Update</button>
-        <a href="{{ route('payroll.index') }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
 @endsection

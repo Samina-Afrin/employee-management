@@ -1,30 +1,33 @@
 @extends('layouts.master')
 
-@section('title', 'Payroll')
+@section('title', 'Payroll List')
 
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4>Payroll Summary</h4>
-        <a href="{{ route('payroll.create') }}" class="btn btn-success">
-            <i class="bi bi-plus-lg"></i> Generate Payroll
-        </a>
+        <h4>Payroll List</h4>
+        <a href="{{ route('payroll.create') }}" class="btn btn-primary">Generate Payroll</a>
     </div>
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
 
-    <form method="GET" class="row g-2 mb-3">
-        <div class="col-md-3">
-            <input type="month" name="month" class="form-control" value="{{ request('month') }}">
+    <form method="GET" action="{{ route('payroll.index') }}" class="row g-2 mb-3">
+        <div class="col-auto">
+            <select name="month" class="form-select">
+                @for($m = 1; $m <= 12; $m++)
+                    <option value="{{ $m }}" {{ $m == $month ? 'selected' : '' }}>
+                        {{ date('F', mktime(0,0,0,$m,1)) }}
+                    </option>
+                @endfor
+            </select>
         </div>
-        <div class="col-md-2">
-            <button class="btn btn-primary">Filter</button>
-            <a href="{{ route('payroll.index') }}" class="btn btn-secondary">Reset</a>
+        <div class="col-auto">
+            <input type="number" name="year" value="{{ $year }}" class="form-control">
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-secondary">Filter</button>
         </div>
     </form>
 
@@ -32,37 +35,51 @@
         <table class="table table-bordered table-striped align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>Month</th>
-                    <th class="text-center">Employees</th>
-                    <th class="text-end">Total Gross (৳)</th>
-                    <th class="text-end">Total Net (৳)</th>
-                    <th class="text-center">Paid</th>
-                    <th class="text-center">Pending</th>
-                    <th width="260">Action</th>
+                    <th>#</th>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Designation</th>
+                    <th>Basic</th>
+                    <th>Allowance</th>
+                    <th>Deduction</th>
+                    <th>Net Salary</th>
+                    <th>Status</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($summaries as $row)
-                @php $monthStr = \Carbon\Carbon::parse($row->salary_month)->format('Y-m'); @endphp
+                @forelse($payrolls as $p)
                 <tr>
-                    <td><strong>{{ \Carbon\Carbon::parse($row->salary_month)->format('F Y') }}</strong></td>
-                    <td class="text-center">{{ $row->total }}</td>
-                    <td class="text-end">{{ number_format($row->total_gross, 2) }}</td>
-                    <td class="text-end">{{ number_format($row->total_net, 2) }}</td>
-                    <td class="text-center"><span class="badge bg-success">{{ $row->paid_count }}</span></td>
-                    <td class="text-center"><span class="badge bg-warning text-dark">{{ $row->pending_count }}</span></td>
+                    <td>{{ $loop->iteration + ($payrolls->currentPage() - 1) * $payrolls->perPage() }}</td>
+                    <td>{{ $p->employee->name ?? '-' }}</td>
+                    <td>{{ $p->employee->department->department_name ?? '-' }}</td>
+                    <td>{{ $p->employee->designation->designation_name ?? '-' }}</td>
+                    <td>{{ number_format($p->basic_salary, 2) }}</td>
+                    <td>{{ number_format($p->total_allowance, 2) }}</td>
+                    <td>{{ number_format($p->total_deduction, 2) }}</td>
+                    <td><strong>{{ number_format($p->net_salary, 2) }}</strong></td>
                     <td>
-                        <a href="{{ route('payroll.month', $monthStr) }}" class="btn btn-sm btn-info">View Sheet</a>
-                        <a href="{{ route('payroll.sheet', $monthStr) }}" class="btn btn-sm btn-danger">PDF Sheet</a>
+                        @if($p->status == 'paid')
+                            <span class="badge bg-success">Paid</span>
+                        @elseif($p->status == 'cancelled')
+                            <span class="badge bg-danger">Cancelled</span>
+                        @else
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        @endif
+                    </td>
+                    <td>
+                        <a href="{{ route('payroll.show', $p) }}" class="btn btn-sm btn-info">View</a>
+                        <a href="{{ route('payroll.edit', $p) }}" class="btn btn-sm btn-warning">Edit</a>
+                        <a href="{{ route('payroll.payslip', $p) }}" target="_blank" class="btn btn-sm btn-dark">Payslip</a>
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="7" class="text-center">No payroll records found.</td></tr>
+                <tr><td colspan="10" class="text-center">No payroll found for this month.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    {{ $summaries->withQueryString()->links() }}
+    {{ $payrolls->withQueryString()->links() }}
 </div>
 @endsection

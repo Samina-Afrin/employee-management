@@ -74,7 +74,6 @@
 
 <!-- ================= Stat Cards Row ================= -->
 <div class="row g-3 mb-4">
-    <!-- Total Employees -->
     <div class="col-md-4">
         <a href="{{ route('employee.index') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #0d6efd !important;">
@@ -94,7 +93,6 @@
         </a>
     </div>
 
-    <!-- Departments -->
     <div class="col-md-4">
         <a href="{{ route('department.index') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #198754 !important;">
@@ -114,7 +112,6 @@
         </a>
     </div>
 
-    <!-- Designations -->
     <div class="col-md-4">
         <a href="{{ route('designation.index') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm h-100" style="border-left: 4px solid #6f42c1 !important;">
@@ -334,11 +331,13 @@
                             @forelse($recentPayrolls as $p)
                                 <tr>
                                     <td>{{ $p->employee->name ?? '—' }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($p->salary_month)->format('M Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::create($p->year, $p->month, 1)->format('M Y') }}</td>
                                     <td>৳ {{ number_format($p->net_salary, 2) }}</td>
                                     <td>
-                                        @if($p->payment_status == 2)
+                                        @if($p->status == 'paid')
                                             <span class="badge bg-success">Paid</span>
+                                        @elseif($p->status == 'cancelled')
+                                            <span class="badge bg-danger">Cancelled</span>
                                         @else
                                             <span class="badge bg-warning text-dark">Pending</span>
                                         @endif
@@ -386,12 +385,10 @@
     function updateClocks() {
         const now = new Date();
 
-        // Local time
         const localTime = now.toLocaleTimeString('en-US', {
             hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
 
-        // Dhaka time (UTC+6)
         const dhakaOffset = 6 * 60;
         const utcOffset = now.getTimezoneOffset();
         const dhakaTime = new Date(now.getTime() + (dhakaOffset + utcOffset) * 60000);
@@ -399,7 +396,6 @@
             hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit'
         });
 
-        // UTC
         const utcStr = now.toLocaleTimeString('en-US', {
             hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC'
         });
@@ -418,7 +414,6 @@
     updateClocks();
     setInterval(updateClocks, 1000);
 
-    // Auto refresh countdown
     let countdown = 60;
     setInterval(function () {
         countdown--;

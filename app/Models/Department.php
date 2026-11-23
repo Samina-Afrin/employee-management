@@ -21,12 +21,13 @@ class Department extends Model
         'status' => 'integer',
     ];
 
-    /**
-     * Department-এর সব Employee
-     * employees.department_designation_id → departments.id
-     */
     public function employees()
     {
-        return $this->hasMany(Employee::class, 'department_designation_id', 'id');
+        return $this->hasMany(Employee::class, 'department_id');
+    }
+
+    public function designations()
+    {
+        return $this->hasMany(Designation::class, 'department_id');
     }
 }

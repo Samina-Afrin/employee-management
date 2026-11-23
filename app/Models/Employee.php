@@ -14,18 +14,21 @@ class Employee extends Model
         'user_id',
         'employee_code',
         'name',
+        'department_id',
+        'designation_id',
         'phone',
         'nid_number',
         'photo',
         'gender',
         'date_of_birth',
         'address',
-        'department_designation_id',
         'manager_id',
         'shift_id',
         'joining_date',
         'job_type',
         'status',
+        'monthly_salary',
+        'salary_type',
     ];
 
     protected $casts = [
@@ -34,6 +37,7 @@ class Employee extends Model
         'gender'        => 'integer',
         'job_type'      => 'integer',
         'status'        => 'integer',
+        'monthly_salary' => 'decimal:2',
     ];
 
     protected static function boot()
@@ -57,20 +61,23 @@ class Employee extends Model
         });
     }
 
-    /**
-     * Employee-এর Department
-     * employee.department_designation_id → departments.id
-     */
     public function department()
     {
-        return $this->belongsTo(Department::class, 'department_designation_id', 'id');
+        return $this->belongsTo(Department::class);
     }
 
-    /**
-     * Employee-এর Manager (self reference)
-     */
+    public function designation()
+    {
+        return $this->belongsTo(Designation::class);
+    }
+
     public function manager()
     {
         return $this->belongsTo(Employee::class, 'manager_id');
+    }
+
+    public function payrolls()
+    {
+        return $this->hasMany(Payroll::class);
     }
 }
