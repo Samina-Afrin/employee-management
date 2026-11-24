@@ -9,16 +9,6 @@
         <a href="{{ route('payroll.index') }}" class="btn btn-secondary">Back</a>
     </div>
 
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <form method="POST" action="{{ route('payroll.generate') }}">
         @csrf
 
@@ -33,51 +23,31 @@
                     @endfor
                 </select>
             </div>
-
             <div class="col-md-6 mb-3">
                 <label class="form-label">Year *</label>
-                <input type="number" name="year" value="{{ old('year', now()->year) }}" class="form-control" required>
+                <input type="number" name="year" value="{{ now()->year }}" class="form-control" required>
             </div>
         </div>
 
-        <div class="alert alert-info">
-            <p class="mb-1"><strong>Total Active Employees:</strong> {{ $employees->count() }}</p>
-            <p class="mb-0"><em>Each employee's monthly salary will be picked from their profile.</em></p>
-        </div>
-
-        <h5>Default Allowances (Optional)</h5>
-        <p class="text-muted small">Ei allowance gula sob employee er payroll e add hobe.</p>
+        <h5>Default Allowances</h5>
         <div id="allowance-wrapper">
             <div class="row mb-2 allowance-row">
-                <div class="col-md-6">
-                    <input type="text" name="default_allowances[0][title]" class="form-control" placeholder="e.g. House Rent">
-                </div>
-                <div class="col-md-5">
-                    <input type="number" step="0.01" name="default_allowances[0][amount]" class="form-control" placeholder="0.00">
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.allowance-row').remove()">×</button>
-                </div>
+                <div class="col-md-6"><input type="text" name="default_allowances[0][title]" class="form-control" placeholder="House Rent"></div>
+                <div class="col-md-5"><input type="number" step="0.01" name="default_allowances[0][amount]" class="form-control" placeholder="0.00"></div>
+                <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeAllowance(this)">×</button></div>
             </div>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addAllowanceRow()">+ Add Allowance</button>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addAllowance()">+ Add Allowance</button>
 
-        <h5>Default Deductions (Optional)</h5>
-        <p class="text-muted small">Ei deduction gula sob employee er payroll e add hobe.</p>
+        <h5>Default Deductions</h5>
         <div id="deduction-wrapper">
             <div class="row mb-2 deduction-row">
-                <div class="col-md-6">
-                    <input type="text" name="default_deductions[0][title]" class="form-control" placeholder="e.g. Tax">
-                </div>
-                <div class="col-md-5">
-                    <input type="number" step="0.01" name="default_deductions[0][amount]" class="form-control" placeholder="0.00">
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.deduction-row').remove()">×</button>
-                </div>
+                <div class="col-md-6"><input type="text" name="default_deductions[0][title]" class="form-control" placeholder="Tax"></div>
+                <div class="col-md-5"><input type="number" step="0.01" name="default_deductions[0][amount]" class="form-control" placeholder="0.00"></div>
+                <div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeDeduction(this)">×</button></div>
             </div>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addDeductionRow()">+ Add Deduction</button>
+        <button type="button" class="btn btn-sm btn-outline-primary mb-3" onclick="addDeduction()">+ Add Deduction</button>
 
         <div class="mt-3">
             <button type="submit" class="btn btn-primary">Generate Payroll</button>
@@ -85,44 +55,30 @@
         </div>
     </form>
 </div>
-@endsection
 
-@push('scripts')
+{{-- JavaScript EKHANE DIRECT --}}
 <script>
-    function addAllowanceRow() {
-        const wrapper = document.getElementById('allowance-wrapper');
-        const count = wrapper.querySelectorAll('.allowance-row').length;
-        const row = document.createElement('div');
-        row.className = 'row mb-2 allowance-row';
-        row.innerHTML = `
-            <div class="col-md-6">
-                <input type="text" name="default_allowances[${count}][title]" class="form-control" placeholder="e.g. House Rent">
-            </div>
-            <div class="col-md-5">
-                <input type="number" step="0.01" name="default_allowances[${count}][amount]" class="form-control" placeholder="0.00">
-            </div>
-            <div class="col-md-1">
-                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.allowance-row').remove()">×</button>
-            </div>`;
-        wrapper.appendChild(row);
-    }
-
-    function addDeductionRow() {
-        const wrapper = document.getElementById('deduction-wrapper');
-        const count = wrapper.querySelectorAll('.deduction-row').length;
-        const row = document.createElement('div');
-        row.className = 'row mb-2 deduction-row';
-        row.innerHTML = `
-            <div class="col-md-6">
-                <input type="text" name="default_deductions[${count}][title]" class="form-control" placeholder="e.g. Tax">
-            </div>
-            <div class="col-md-5">
-                <input type="number" step="0.01" name="default_deductions[${count}][amount]" class="form-control" placeholder="0.00">
-            </div>
-            <div class="col-md-1">
-                <button type="button" class="btn btn-danger btn-sm" onclick="this.closest('.deduction-row').remove()">×</button>
-            </div>`;
-        wrapper.appendChild(row);
-    }
+function addAllowance() {
+    var w = document.getElementById('allowance-wrapper');
+    var i = w.querySelectorAll('.allowance-row').length;
+    var r = document.createElement('div');
+    r.className = 'row mb-2 allowance-row';
+    r.innerHTML = '<div class="col-md-6"><input type="text" name="default_allowances['+i+'][title]" class="form-control" placeholder="House Rent"></div>' +
+        '<div class="col-md-5"><input type="number" step="0.01" name="default_allowances['+i+'][amount]" class="form-control" placeholder="0.00"></div>' +
+        '<div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeAllowance(this)">×</button></div>';
+    w.appendChild(r);
+}
+function addDeduction() {
+    var w = document.getElementById('deduction-wrapper');
+    var i = w.querySelectorAll('.deduction-row').length;
+    var r = document.createElement('div');
+    r.className = 'row mb-2 deduction-row';
+    r.innerHTML = '<div class="col-md-6"><input type="text" name="default_deductions['+i+'][title]" class="form-control" placeholder="Tax"></div>' +
+        '<div class="col-md-5"><input type="number" step="0.01" name="default_deductions['+i+'][amount]" class="form-control" placeholder="0.00"></div>' +
+        '<div class="col-md-1"><button type="button" class="btn btn-danger btn-sm" onclick="removeDeduction(this)">×</button></div>';
+    w.appendChild(r);
+}
+function removeAllowance(btn) { btn.closest('.allowance-row').remove(); }
+function removeDeduction(btn) { btn.closest('.deduction-row').remove(); }
 </script>
-@endpush
+@endsection

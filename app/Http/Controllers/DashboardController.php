@@ -41,6 +41,21 @@ class DashboardController extends Controller
             ->where('year', $currentYear)
             ->sum('net_salary');
 
+        // ===== NEW: Current month payroll records list =====
+        $currentMonthPayrolls = Payroll::with('employee.department')
+            ->where('month', $currentMonth)
+            ->where('year', $currentYear)
+            ->orderByDesc('created_at')
+            ->get();
+
+        // ===== NEW: Payroll summary by status (current month) =====
+        $payrollStatusSummary = [
+            'total'     => $currentMonthPayrolls->count(),
+            'pending'   => $currentMonthPayrolls->where('status', 'pending')->count(),
+            'paid'      => $currentMonthPayrolls->where('status', 'paid')->count(),
+            'cancelled' => $currentMonthPayrolls->where('status', 'cancelled')->count(),
+        ];
+
         // Department-wise employees
         $departmentWise = Department::withCount('employees')
             ->orderByDesc('employees_count')
@@ -69,6 +84,8 @@ class DashboardController extends Controller
             'todayLeave',
             'pendingLeaves',
             'monthlyPayroll',
+            'currentMonthPayrolls',
+            'payrollStatusSummary',
             'departmentWise',
             'recentEmployees',
             'recentLeaves',

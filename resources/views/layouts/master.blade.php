@@ -115,6 +115,21 @@
                             <span>Payroll</span>
                         </a>
                     </li>
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('recruitment.index') }}"
+                           class="sidebar-menu-link {{ request()->is('recruitment*') ? 'active' : '' }}">
+                            <i class="bi bi-person-plus-fill"></i>
+                            <span>Recruitment</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-menu-item">
+    <a href="{{ route('loan.index') }}"
+       class="sidebar-menu-link {{ request()->is('loan*') ? 'active' : '' }}">
+        <i class="bi bi-cash-coin"></i>
+        <span>Loan</span>
+    </a>
+</li>
+                    
 
                   
                 </ul>
