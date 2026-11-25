@@ -129,6 +129,15 @@
         <span>Loan</span>
     </a>
 </li>
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('notice.index') }}"
+                           class="sidebar-menu-link {{ request()->is('notice*') ? 'active' : '' }}">
+                            <i class="bi bi-megaphone-fill"></i>
+                            <span>Notice</span>
+                        </a>
+                    </li>
+    
+
                     
 
                   
