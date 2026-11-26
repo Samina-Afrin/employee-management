@@ -14,6 +14,9 @@ use App\Http\Controllers\PayrollController;
 use App\Http\Controllers\RecruitmentController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\NoticeController;
+use App\Http\Controllers\CompanyAssetController;
+use App\Http\Controllers\TrainingController;
+use App\Http\Controllers\PromotionController;
 
 Auth::routes();
 
@@ -81,6 +84,17 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/recruitment/{recruitment}/convert', [RecruitmentController::class, 'convertToEmployee'])->name('recruitment.convert');
 });
 
+// ==================== COMPANY ASSETS (নতুন) ====================
+Route::middleware(['auth'])->group(function () {
+    Route::resource('company-assets', CompanyAssetController::class);
+});
+// ==================== TRAINING ====================
+Route::middleware(['auth'])->group(function () {
+    Route::resource('trainings', TrainingController::class);
+
+    // ==================== PROMOTION ====================
+    Route::resource('promotions', PromotionController::class);
+});
+
 // ==================== NOTICE (Admin) ====================
 Route::resource('notice', NoticeController::class);
-

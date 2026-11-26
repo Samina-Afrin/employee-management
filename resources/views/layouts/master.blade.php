@@ -123,12 +123,33 @@
                         </a>
                     </li>
                     <li class="sidebar-menu-item">
-    <a href="{{ route('loan.index') }}"
-       class="sidebar-menu-link {{ request()->is('loan*') ? 'active' : '' }}">
-        <i class="bi bi-cash-coin"></i>
-        <span>Loan</span>
-    </a>
-</li>
+                        <a href="{{ route('loan.index') }}"
+                           class="sidebar-menu-link {{ request()->is('loan*') ? 'active' : '' }}">
+                            <i class="bi bi-cash-coin"></i>
+                            <span>Loan</span>
+                        </a>
+                    </li>
+
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('company-assets.index') }}"
+                           class="sidebar-menu-link {{ request()->is('company-assets*') ? 'active' : '' }}">
+                            <i class="bi bi-laptop"></i>
+                            <span>Company Assets</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('trainings.index') }}"
+                           class="sidebar-menu-link {{ request()->is('trainings*') ? 'active' : '' }}">
+                            <i class="bi bi-journal-text"></i>
+                            <span>Training</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-menu-item">
+                        <a href="{{ route('promotions.index') }}"
+                           class="sidebar-menu-link {{ request()->is('promotions*') ? 'active' : '' }}">
+                            <i class="bi bi-arrow-up-right-square"></i>
+                            <span>Promotion</span>
+                        </a>
                     <li class="sidebar-menu-item">
                         <a href="{{ route('notice.index') }}"
                            class="sidebar-menu-link {{ request()->is('notice*') ? 'active' : '' }}">
@@ -136,11 +157,7 @@
                             <span>Notice</span>
                         </a>
                     </li>
-    
 
-                    
-
-                  
                 </ul>
             </div>
 
@@ -248,6 +265,15 @@
                                 Add Designation
                             </a>
                         </li>
+
+                    
+                        <li>
+                            <a class="dropdown-item" href="{{ route('company-assets.create') }}">
+                                <i class="bi bi-laptop"></i>
+                                Add Company Asset
+                            </a>
+                        </li>
+
 
                     </ul>
                 </div>
