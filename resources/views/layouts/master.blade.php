@@ -150,6 +150,51 @@
                             <i class="bi bi-arrow-up-right-square"></i>
                             <span>Promotion</span>
                         </a>
+                    </li>
+
+                    {{-- ==================== PERFORMANCE (NEW - Collapsible) ==================== --}}
+                    <li class="sidebar-menu-item">
+                        <a class="sidebar-menu-link d-flex justify-content-between align-items-center
+                                  {{ request()->is('performance*') ? 'active' : '' }}"
+                           data-bs-toggle="collapse"
+                           href="#performanceSubmenu"
+                           role="button"
+                           aria-expanded="{{ request()->is('performance*') ? 'true' : 'false' }}"
+                           aria-controls="performanceSubmenu">
+                            <span>
+                                <i class="bi bi-bar-chart-fill"></i>
+                                <span>Performance</span>
+                            </span>
+                            <i class="bi bi-chevron-down small"></i>
+                        </a>
+
+                        <div class="collapse {{ request()->is('performance*') ? 'show' : '' }}"
+                             id="performanceSubmenu">
+                            <ul class="list-unstyled ps-4 mt-1" style="font-size: .85rem;">
+
+                                <li class="mb-1">
+                                    <a href="{{ route('performance.index') }}"
+                                       class="sidebar-menu-link py-1
+                                              {{ request()->routeIs('performance.index') || request()->routeIs('performance.show') || request()->routeIs('performance.create') ? 'active' : '' }}">
+                                        <i class="bi bi-clipboard-check"></i>
+                                        <span>Performance Review</span>
+                                    </a>
+                                </li>
+
+                                <li class="mb-1">
+                                    <a href="{{ route('performance.goals.index') }}"
+                                       class="sidebar-menu-link py-1
+                                              {{ request()->routeIs('performance.goals.index') ? 'active' : '' }}">
+                                        <i class="bi bi-bullseye"></i>
+                                        <span>Performance Goal</span>
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </div>
+                    </li>
+                    {{-- ==================== END PERFORMANCE ==================== --}}
+
                     <li class="sidebar-menu-item">
                         <a href="{{ route('notice.index') }}"
                            class="sidebar-menu-link {{ request()->is('notice*') ? 'active' : '' }}">
@@ -266,14 +311,12 @@
                             </a>
                         </li>
 
-                    
                         <li>
                             <a class="dropdown-item" href="{{ route('company-assets.create') }}">
                                 <i class="bi bi-laptop"></i>
                                 Add Company Asset
                             </a>
                         </li>
-
 
                     </ul>
                 </div>
@@ -382,6 +425,28 @@
 
 
         <!-- ================= PAGE CONTENT ================= -->
+
+        @if(session('success'))
+            <div class="container-fluid pt-3">
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        @endif
+
+        @if($errors->any())
+            <div class="container-fluid pt-3">
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        @endif
 
         @yield('content')
 
